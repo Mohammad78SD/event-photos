@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-6 pt-12 pb-10 relative">
+  <span class="pearl-dot w-[6px] h-[6px] absolute top-4 left-6"></span>
+  <p class="micro-label-fa mb-3">قدم اول</p>
+  <h1 class="font-body font-medium text-2xl text-ink mb-8">اسمتون رو بنویسین</h1>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <label class="block mb-4">
+      <span class="field-label">{{ form.name.label }}</span>
+      {{ form.name }}
+      {% for error in form.name.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    </label>
+
+    <label class="block mb-1.5">
+      <span class="field-label">{{ form.phone.label }}</span>
+      {{ form.phone }}
+      {% for error in form.phone.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    </label>
+    <p class="text-[13px] text-muted-2 mb-4">فقط برای اینکه بتونیم ازتون تشکر کنیم. جای دیگه‌ای استفاده نمی‌شه.</p>
+
+    <label class="block mb-8">
+      <span class="field-label">{{ form.message.label }} <span class="text-muted-2 font-normal">(اختیاری)</span></span>
+      {{ form.message }}
+    </label>
+
+    <button type="submit" class="btn-primary">ادامه</button>
+  </form>
+</div>
+{% endblock %}

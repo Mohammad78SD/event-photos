@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load event_extras %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-6 pt-14 pb-10 text-center">
+  <div class="w-16 h-16 rounded-full pearl-dot mx-auto mb-6 flex items-center justify-center">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"></polyline></svg>
+  </div>
+  <p class="micro-label-fa mb-3">سپاس</p>
+  <h1 class="font-body font-medium text-2xl text-ink mb-1">{{ items.count|persian_digits }} تا عکس رسید</h1>
+  <p class="text-[15px] text-ink-soft leading-7 font-light mt-4 mb-8">
+    مرسی که این لحظه‌ها رو باهامون قسمت کردین.<br>
+    عکساتون به آلبوم اضافه شد.
+  </p>
+
+  <div class="flex justify-center gap-3 mb-10">
+    {% for item in items|slice:":3" %}
+    <div class="polaroid" style="transform: rotate({% cycle '-2.6deg' '1.4deg' '2.2deg' %})">
+      <img src="{% if item.thumb %}{{ item.thumb.url }}{% else %}{{ item.file.url }}{% endif %}" alt="" class="w-20 h-24 object-cover">
+      {% if item.caption %}<p class="text-[10px] text-muted leading-4 mt-1 line-clamp-2">{{ item.caption }}</p>{% endif %}
+      {% if not item.guest.is_approved %}
+      <p class="text-[10px] text-muted-2 mt-1">در انتظار تأیید</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <a href="{% url 'uploads:upload' slug=event.slug %}" class="btn-primary mb-3">عکس بیشتری بفرستین</a>
+  <a href="{% url 'gallery:gallery' slug=event.slug %}?view=guest" class="btn-secondary">دیدن عکسای من</a>
+</div>
+{% endblock %}

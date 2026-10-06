@@ -1,0 +1,11 @@
+{% comment %}
+Renders a boolean form field as the app's pill toggle instead of a native
+checkbox. Usage: {% include "partials/_toggle_field.html" with field=form.is_open %}
+The field's widget must have class "peer sr-only" (see apps/events/forms.py).
+{% endcomment %}
+<label class="flex items-center justify-between border border-border rounded-2xl px-4 py-3 cursor-pointer">
+  <span class="text-[15px] text-ink-soft">{{ field.label }}</span>
+  {{ field }}
+  <span class="toggle-track"><span class="toggle-knob"></span></span>
+</label>
+{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}

@@ -1,0 +1,153 @@
+{% load static event_extras %}<!DOCTYPE html>
+{% comment %} Standalone, not extending base.html: the wall is the one screen that is dark.
+   A pearl-white projection in a dim venue is blinding, and photos read better on
+   ink. Palette is still docs/DESIGN.md — ink background, on-ink text, no accent. {% endcomment %}
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{{ event.title }}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=Pinyon+Script&family=Vazirmatn:wght@300;400;500;700&display=swap">
+  <link rel="stylesheet" href="{% static_v 'dist/app.css' %}">
+  <script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background: #1A1A1A; cursor: none; }
+    .layer { transition: opacity 1.4s ease-in-out; }
+  </style>
+</head>
+<body class="text-[#FAF8F5] font-body">
+
+{{ items|json_script:"live-items" }}
+
+<div
+  class="fixed inset-0"
+  x-data="liveWall(JSON.parse(document.getElementById('live-items').textContent), '{{ feed_url }}')"
+>
+  {% comment %} Two stacked layers, crossfaded. The incoming image is decoded before the
+     swap, so a slow venue connection never flashes a half-painted photo. {% endcomment %}
+  <template x-for="i in [0, 1]" :key="i">
+    <div class="layer absolute inset-0" :class="front === i ? 'opacity-100' : 'opacity-0'">
+      <template x-if="layers[i]">
+        <div class="absolute inset-0">
+          {# Blurred fill so portrait photos don't sit in empty black bars. #}
+          <div
+            class="absolute inset-0 bg-cover bg-center scale-110 opacity-30 blur-3xl"
+            :style="`background-image: url('${layers[i].url}')`"
+          ></div>
+          <img :src="layers[i].url" alt="" class="relative w-full h-full object-contain">
+        </div>
+      </template>
+    </div>
+  </template>
+
+  {# Attract state: no approved photos yet, so ask for the first one. #}
+  <div x-show="!current" class="absolute inset-0 flex flex-col items-center justify-center text-center px-10">
+    <p class="font-script text-5xl mb-4">{{ event.names.0 }} &amp; {{ event.names.1 }}</p>
+    <p class="text-2xl font-light text-white/70 mb-2">هنوز عکسی نیومده</p>
+    <p class="text-lg font-light text-white/50">اولین عکس رو شما بفرستین</p>
+  </div>
+
+  {# Caption plate, bottom-right (reading start in RTL). #}
+  <div
+    x-show="current"
+    class="absolute bottom-0 inset-x-0 pt-32 pb-12 px-14 bg-gradient-to-t from-black/80 to-transparent pointer-events-none"
+  >
+    <p x-show="current && current.caption" class="text-3xl font-light leading-relaxed max-w-4xl" x-text="current && current.caption"></p>
+    <p class="text-xl text-white/60 mt-3" x-text="current && current.name"></p>
+  </div>
+
+  {% comment %} Scan card. The whole point of putting the wall on a projector is that late
+     guests see it and upload without anyone handing them a table card. {% endcomment %}
+  <div class="absolute top-10 left-10 bg-[#FAF8F5] text-ink rounded-2xl p-5 text-center shadow-2xl">
+    <img src="{{ qr_svg }}" alt="" class="w-32 h-32 mx-auto">
+    <p class="text-[13px] text-ink-soft mt-3 max-w-[128px] leading-5">برای فرستادن عکس، کد رو اسکن کنین</p>
+  </div>
+</div>
+
+<script>
+  const ADVANCE_MS = 8000;
+  const POLL_MS = 20000;
+
+  function liveWall(initialItems, feedUrl) {
+    return {
+      items: initialItems,
+      seen: new Set(initialItems.map((i) => i.id)),
+      priority: [],
+      cursor: 0,
+      layers: [null, null],
+      front: -1,
+      current: null,
+
+      init() {
+        this.advance();
+        setInterval(() => this.advance(), ADVANCE_MS);
+        setInterval(() => this.poll(), POLL_MS);
+        this.keepAwake();
+      },
+
+      pick() {
+        // A photo that just arrived cuts the queue once, so a guest who uploads
+        // sees it on the wall within a poll cycle rather than 60 photos later.
+        if (this.priority.length) return this.priority.shift();
+        if (!this.items.length) return null;
+        const item = this.items[this.cursor % this.items.length];
+        this.cursor += 1;
+        return item;
+      },
+
+      advance() {
+        const item = this.pick();
+        if (!item) return;
+        const back = this.front === 0 ? 1 : 0;
+        const img = new Image();
+        img.onload = () => {
+          this.layers[back] = item;
+          this.front = back;
+          this.current = item;
+        };
+        // A file deleted mid-slideshow must not freeze the wall on one frame.
+        img.onerror = () => {};
+        img.src = item.url;
+      },
+
+      async poll() {
+        try {
+          const res = await fetch(feedUrl, { cache: "no-store" });
+          if (!res.ok) return;
+          const data = await res.json();
+          const fresh = data.items.filter((i) => !this.seen.has(i.id));
+          fresh.forEach((i) => this.seen.add(i.id));
+          this.priority.push(...fresh);
+          this.items = data.items;
+          if (!this.current) this.advance();
+        } catch (err) {
+          // Venue wifi. Keep cycling what we already hold; never reload.
+        }
+      },
+
+      async keepAwake() {
+        // Hours on a projector with nobody touching the laptop.
+        if (!navigator.wakeLock) return;
+        const acquire = async () => {
+          try {
+            await navigator.wakeLock.request("screen");
+          } catch (err) {
+            /* denied or not visible — nothing to do */
+          }
+        };
+        await acquire();
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") acquire();
+        });
+      },
+    };
+  }
+</script>
+</body>
+</html>

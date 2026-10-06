@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load event_extras %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-6 pt-12 pb-32">
+  <p class="micro-label-fa mb-3">بررسی</p>
+  <h1 class="font-body font-medium text-2xl text-ink mb-8">تأیید مهمان‌ها</h1>
+
+  {% for guest in pending %}
+  <div class="rounded-2xl border border-border p-4 mb-4">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-10 h-10 rounded-full pearl-dot flex items-center justify-center font-body font-medium text-ink">{{ guest.name|first }}</div>
+      <div class="min-w-0">
+        <p class="text-[15px] text-ink-soft truncate">{{ guest.name }}</p>
+        <p class="text-[13px] text-muted-2">{{ guest.phone }} · {{ guest.media_items.count|persian_digits }} عکس · {{ guest.created_at|timesince }} پیش</p>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      {% for item in guest.media_items.all|slice:":4" %}
+      <div class="relative w-14 h-14 rounded-lg overflow-hidden bg-track">
+        <img src="{% if item.thumb %}{{ item.thumb.url }}{% else %}{{ item.file.url }}{% endif %}" alt="" class="w-full h-full object-cover">
+        {% if forloop.last and guest.media_items.count > 4 %}
+        <div class="absolute inset-0 bg-ink/60 flex items-center justify-center text-on-ink text-[13px]">+{{ guest.media_items.count|add:"-4"|persian_digits }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="flex gap-2">
+      <form method="post" action="{% url 'gallery:approve_guest' slug=event.slug guest_id=guest.id %}" class="flex-1">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary">تأیید مهمان</button>
+      </form>
+      <form method="post" action="{% url 'gallery:reject_guest' slug=event.slug guest_id=guest.id %}" class="flex-1" onsubmit="return confirm('این مهمان و عکس‌هایش برای همیشه حذف شوند؟');">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary">رد</button>
+      </form>
+    </div>
+  </div>
+  {% empty %}
+  <div class="text-center py-14">
+    <span class="pearl-dot w-6 h-6 inline-block mb-4"></span>
+    <p class="text-[15px] text-muted">همه تأیید شدند.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="fixed inset-x-0 bottom-0 bg-pearl/95 backdrop-blur px-6 pt-4 pb-6 border-t border-hairline">
+  <div class="max-w-md mx-auto flex items-center justify-between">
+    <div>
+      <span class="block text-[15px] text-ink-soft">نمایش گالری برای مهمان‌ها</span>
+      <span class="block text-[13px] text-muted-2 mt-0.5">
+        {% if event.gallery_shared %}مهمان‌ها می‌توانند عکس‌های تأییدشده‌ی بقیه را ببینند.{% else %}هر مهمان فقط عکس‌های خودش را می‌بیند.{% endif %}
+      </span>
+    </div>
+    <form method="post" action="{% url 'gallery:toggle_gallery_shared' slug=event.slug %}">
+      {% csrf_token %}
+      <button type="submit" role="switch" aria-checked="{{ event.gallery_shared|yesno:'true,false' }}"
+        class="w-[50px] h-[30px] rounded-pill flex items-center px-[4px] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-offset-2 focus-visible:ring-offset-pearl {% if event.gallery_shared %}bg-ink justify-end{% else %}bg-track border border-border-2 justify-start{% endif %}">
+        <span class="w-[22px] h-[22px] rounded-full bg-white shadow"></span>
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

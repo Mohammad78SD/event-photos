@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret
+      DEBUG: "False"
+      DATABASE_URL: psql://test:test@localhost:5432/test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: System libraries
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libmagic1 libheif1
+      - run: pip install -r requirements/dev.txt
+      - name: Build front-end assets
+        run: npm ci && npm run build
+      - name: Check migrations are up to date
+        run: python manage.py makemigrations --check --dry-run --settings=config.settings.test
+      - run: pytest -q

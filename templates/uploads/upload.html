@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static event_extras %}
+
+{% block extra_scripts %}
+<script src="{% static_v 'dist/upload.js' %}"></script>
+<script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div
+  class="max-w-md mx-auto px-6 pt-12 pb-28"
+  x-data="uploadScreen('{{ upload_url }}', {{ event.max_file_mb }}, {{ event.max_files_batch }})"
+>
+  <p class="micro-label-fa mb-3">قدم دوم</p>
+  <h1 class="font-body font-medium text-2xl text-ink mb-1">عکساتون رو انتخاب کنین</h1>
+  <p class="text-[13px] text-muted mb-4">تا {{ event.max_files_batch|persian_digits }} عکس · هر عکس حداکثر {{ event.max_file_mb|persian_digits }} مگابایت</p>
+
+  {% comment %} A returning guest with a cookie is sent straight here, so this is the
+     screen they land on — without this link the album is unreachable for them. {% endcomment %}
+  <a href="{% url 'gallery:gallery' slug=event.slug %}?view=guest" class="inline-block text-[13px] text-muted underline mb-6">دیدن آلبوم مراسم</a>
+
+  <label class="block border border-dashed border-border-2 rounded-2xl py-10 text-center cursor-pointer mb-4">
+    <input type="file" accept="image/*" multiple class="hidden" @change="addFiles($event.target.files)">
+    <span class="block text-ink-soft mb-1">انتخاب از گالری</span>
+    <span class="block text-[13px] text-muted-2">یا همین‌جا عکس بگیرین</span>
+  </label>
+
+  <div class="flex items-center justify-between border border-border rounded-2xl px-4 py-3 mb-2">
+    <span class="text-[15px] text-ink-soft">ارسال با کیفیت اصلی</span>
+    <button
+      type="button"
+      role="switch"
+      :aria-checked="originalQuality"
+      @click="originalQuality = !originalQuality"
+      class="w-[50px] h-[30px] rounded-pill flex items-center px-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-offset-2 focus-visible:ring-offset-pearl"
+      :class="originalQuality ? 'bg-ink justify-end' : 'bg-track border border-border-2 justify-start'"
+    >
+      <span class="w-[22px] h-[22px] rounded-full bg-white shadow"></span>
+    </button>
+  </div>
+  <p class="text-[13px] text-muted-2 mb-6" x-text="originalQuality
+    ? 'عکسا دست‌نخورده فرستاده می‌شن. روی اینترنت ضعیف کندتره.'
+    : 'عکسا یه‌کم کوچیک‌تر و خیلی سریع‌تر فرستاده می‌شن. کیفیتش برای چاپ هم کافیه.'"></p>
+
+  <div class="space-y-3">
+    <template x-for="file in files" :key="file.id">
+      <div class="flex items-center gap-3">
+        <div class="w-[46px] h-[46px] rounded-lg bg-track shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[13px] text-ink-soft truncate" x-text="file.name"></p>
+          {% comment %} Locked once the file is on the wire: the caption travels in the same
+             multipart body, so a word typed after that would silently not save. {% endcomment %}
+          <input type="text" maxlength="280"
+                 class="w-full text-[13px] bg-transparent border-b border-hairline focus:outline-none focus:border-ink-soft py-1 mt-1 disabled:border-transparent disabled:text-muted"
+                 placeholder="یه چیزی درباره‌ش بنویسین…"
+                 :value="file.caption || ''"
+                 :disabled="file.state !== 'queued'"
+                 @input="setCaption(file.id, $event.target.value)">
+          <div class="h-[3px] rounded-[2px] bg-track mt-1.5">
+            <div class="h-full rounded-[2px] bg-ink" :style="`width: ${file.progress}%`"></div>
+          </div>
+        </div>
+        {% comment %} Only before send or after a failure — removing mid-upload would abort the request. {% endcomment %}
+        <button type="button" x-show="file.state === 'queued' || file.state === 'error'"
+                @click="removeFile(file.id)" aria-label="حذف"
+                class="w-8 h-8 shrink-0 flex items-center justify-center text-muted text-xl leading-none">×</button>
+        <span
+          class="text-[13px] w-10 text-left"
+          :class="file.state === 'error' ? 'text-ink font-medium' : 'text-muted'"
+          x-text="
+            file.state === 'done' ? '✓' :
+            file.state === 'error' ? 'خطا' :
+            file.state === 'queued' ? 'در صف' : file.progress + '٪'
+          "
+        ></span>
+      </div>
+    </template>
+  </div>
+
+  <div class="fixed inset-x-0 bottom-0 bg-pearl/95 backdrop-blur px-6 pt-4 pb-6 border-t border-hairline">
+    <div class="max-w-md mx-auto">
+      <button type="button" class="btn-primary" @click="submit()" :disabled="!files.length" x-text="submitting ? 'در حال ارسال…' : 'فرستادن عکسا'"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+function uploadScreen(uploadUrl, maxFileMb, maxFilesBatch) {
+  return {
+    originalQuality: false,
+    submitting: false,
+    files: [],
+    uploader: null,
+
+    init() {
+      this.uploader = WeddingUpload.createUploader({
+        uploadUrl,
+        maxFileMb,
+        maxFilesBatch,
+        onFileRemoved: (id) => {
+          this.files = this.files.filter((f) => f.id !== id);
+        },
+        onFileState: (id, patch) => {
+          const existing = this.files.find((f) => f.id === id);
+          if (existing) {
+            Object.assign(existing, patch);
+          } else {
+            this.files.push({ id, progress: 0, state: "queued", ...patch });
+          }
+        },
+      });
+    },
+
+    async addFiles(fileList) {
+      await this.uploader.addFiles(fileList, this.originalQuality);
+    },
+
+    removeFile(id) {
+      this.uploader.removeFile(id);
+    },
+
+    setCaption(id, text) {
+      const f = this.files.find((x) => x.id === id);
+      if (f) f.caption = text;
+      this.uploader.setCaption(id, text);
+    },
+
+    async submit() {
+      this.submitting = true;
+      try {
+        await this.uploader.start();
+        window.location.href = "{% url 'uploads:done' slug=event.slug %}";
+      } catch (err) {
+        // Don't strand the guest on a screen with no way forward. Per-file error
+        // states are already visible, and anything that did land is on the done
+        // screen, so send them there rather than leaving them staring at a
+        // button that appears to have done nothing.
+        console.error(err);
+        if (this.files.some((f) => f.state === "done")) {
+          window.location.href = "{% url 'uploads:done' slug=event.slug %}";
+        }
+      } finally {
+        this.submitting = false;
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

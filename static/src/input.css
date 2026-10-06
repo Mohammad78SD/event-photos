@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn-primary {
+    @apply h-[54px] rounded-pill bg-ink text-on-ink text-base font-medium w-full flex items-center justify-center
+      transition-opacity active:opacity-80 disabled:opacity-40
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-offset-2 focus-visible:ring-offset-pearl;
+  }
+  .btn-secondary {
+    @apply h-[50px] rounded-pill bg-transparent border border-border-2 text-ink text-base font-medium w-full flex items-center justify-center
+      transition-colors active:bg-pearl disabled:opacity-40
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 focus-visible:ring-offset-2 focus-visible:ring-offset-pearl;
+  }
+  .field-input {
+    @apply h-[52px] rounded-[10px] border border-border-2 bg-paper px-4 text-[15px] w-full
+      transition-colors focus:outline-none focus:border-ink-soft focus:ring-2 focus:ring-ink/10;
+  }
+  .pearl-dot {
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #fff 0%, #f2efe9 38%, #d9d3c9 78%, #b9b2a6 100%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+  }
+  .polaroid {
+    background: #fff;
+    padding: 6px 6px 8px;
+    box-shadow: 0 3px 9px rgba(0, 0, 0, .1);
+  }
+  .micro-label {
+    @apply font-display text-[10px] tracking-[3.6px] uppercase text-muted;
+  }
+  /* Persian counterpart of .micro-label. Deliberately NOT a copy of it:
+     `uppercase` does nothing in Persian, and the 3.6px tracking that makes the
+     Latin label read as engraved small-caps prises apart Persian's joined
+     letterforms instead. Slightly larger to match the Latin label's optical
+     weight, since Vazirmatn at 10px next to Playfair small-caps reads smaller. */
+  .micro-label-fa {
+    @apply font-body font-medium text-[12px] text-muted;
+  }
+  .divider-line {
+    @apply h-px bg-hairline flex-1;
+  }
+  .field-label {
+    @apply block text-[13px] text-ink-soft font-medium mb-1.5;
+  }
+  .field-error {
+    @apply text-[12px] text-ink font-medium mt-1;
+  }
+  /* Real checkbox input, visually hidden (.peer + sr-only via the widget's
+     class attr), styled to look like the app's pill toggle via peer-checked.
+     Same shape/positions as the Alpine-driven toggles in upload.html and
+     moderation.html — just CSS-only, for a plain form checkbox. */
+  .toggle-track {
+    @apply w-[50px] h-[30px] rounded-pill flex items-center px-[4px] shrink-0
+      bg-track border border-border-2 justify-start
+      peer-checked:bg-ink peer-checked:border-ink peer-checked:justify-end
+      peer-focus-visible:ring-2 peer-focus-visible:ring-ink/30 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-pearl
+      transition-colors;
+  }
+  .toggle-knob {
+    @apply w-[22px] h-[22px] rounded-full bg-white shadow;
+  }
+}

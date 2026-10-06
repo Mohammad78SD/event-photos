@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load event_extras %}
+
+{% block extra_scripts %}
+<script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 pt-12 pb-44">
+  <p class="font-script text-3xl text-ink text-center mb-1">{{ event.names.0 }} & {{ event.names.1 }}</p>
+  <h1 class="font-body font-medium text-xl text-ink text-center mb-2">آلبوم مراسم‌مون</h1>
+  <p class="micro-label-fa text-center mb-6">{{ items.paginator.count|persian_digits }} عکس · {{ guest_count|persian_digits }} مهمان</p>
+
+  {% if can_moderate %}
+  <div class="flex justify-center gap-4 mb-6">
+    <a href="{% url 'gallery:moderation_queue' slug=event.slug %}" class="text-[13px] text-muted underline">تأیید مهمان‌ها</a>
+    <a href="{% url 'gallery:live' slug=event.slug %}" class="text-[13px] text-muted underline">نمایش روی پرده</a>
+  </div>
+  {% endif %}
+
+  <div class="flex gap-2 mb-6">
+    <a href="?view=all" class="text-[13px] px-3 py-1.5 rounded-pill {% if view == 'all' %}bg-ink text-on-ink{% else %}border border-border-2 text-ink-soft{% endif %}">همه</a>
+    <a href="?view=latest" class="text-[13px] px-3 py-1.5 rounded-pill {% if view == 'latest' %}bg-ink text-on-ink{% else %}border border-border-2 text-ink-soft{% endif %}">تازه‌ترین</a>
+    {% if guest %}
+    <a href="?view=guest" class="text-[13px] px-3 py-1.5 rounded-pill {% if view == 'guest' %}bg-ink text-on-ink{% else %}border border-border-2 text-ink-soft{% endif %}">عکسای من</a>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    {% for item in items %}
+    <div class="polaroid" style="transform: rotate({% cycle '-2deg' '1.6deg' '-1.2deg' '2.2deg' %})">
+      <img src="{% if item.preview %}{{ item.preview.url }}{% else %}{{ item.file.url }}{% endif %}" alt="" loading="lazy" class="w-full aspect-square object-cover">
+      <p class="text-[13px] text-ink-soft mt-2 truncate">{{ item.guest.name }}</p>
+      {% if item.caption %}<p class="text-[12px] text-muted leading-5 mt-0.5">{{ item.caption }}</p>{% endif %}
+      {% if not item.guest.is_approved %}<p class="text-[11px] text-muted-2">در انتظار تأیید</p>{% endif %}
+      {% if can_moderate %}
+      <div class="flex gap-3 mt-2">
+        <form method="post" action="{% url 'gallery:hide_item' slug=event.slug item_id=item.id %}">
+          {% csrf_token %}
+          <button class="text-[11px] text-muted underline py-1">{% if item.is_hidden %}نمایش{% else %}پنهان‌کردن{% endif %}</button>
+        </form>
+        <form method="post" action="{% url 'gallery:delete_item' slug=event.slug item_id=item.id %}" onsubmit="return confirm('این عکس برای همیشه حذف شود؟');">
+          {% csrf_token %}
+          <button class="text-[11px] text-ink font-medium underline py-1">حذف</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="col-span-2 text-center py-14">
+      <span class="pearl-dot w-6 h-6 inline-block mb-4"></span>
+      <p class="text-[15px] text-muted">هنوز عکسی نیومده.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if items.has_other_pages %}
+  <div class="flex justify-center gap-2 mt-8">
+    {% if items.has_previous %}<a href="?view={{ view }}&page={{ items.previous_page_number }}" class="text-[13px] px-4 py-1.5 rounded-pill border border-border-2 text-ink-soft">قبلی</a>{% endif %}
+    {% if items.has_next %}<a href="?view={{ view }}&page={{ items.next_page_number }}" class="text-[13px] px-4 py-1.5 rounded-pill border border-border-2 text-ink-soft">بعدی</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if guest or can_download %}
+<div
+  {% if can_download %}x-data="zipDownload('{% url 'gallery:request_zip' slug=event.slug %}', '{{ zip_status_url_template }}', {{ request.GET.export|default:'null' }})"{% endif %}
+  class="fixed inset-x-0 bottom-0 bg-pearl/95 backdrop-blur px-6 pt-4 pb-6 border-t border-hairline"
+>
+  {% comment %} Without this the gallery is a dead end for a guest: they arrive from the
+     done screen and the only things here are filters and a download. Sending more
+     photos is the thing they are most likely to want next, so it gets the primary
+     button. The whole-album download is the owners' alone — not guests, and not a
+     helper holding the moderator link. {% endcomment %}
+  <div class="max-w-2xl mx-auto space-y-2">
+    {% if guest %}
+    <a href="{% url 'uploads:upload' slug=event.slug %}" class="btn-primary">عکس بفرستین</a>
+    {% endif %}
+    {% if can_download %}
+    <button type="button" class="{% if guest %}btn-secondary{% else %}btn-primary{% endif %}" @click="start()" x-show="!exportId" x-text="'دانلود همه‌ی عکسا'"></button>
+    <button type="button" class="{% if guest %}btn-secondary{% else %}btn-primary{% endif %}" x-show="exportId && !ready" disabled x-text="'در حال آماده‌سازی…'"></button>
+    <a :href="downloadUrl" x-show="exportId && ready" class="{% if guest %}btn-secondary{% else %}btn-primary{% endif %}" x-text="'دانلود فایل zip'"></a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+function zipDownload(requestUrl, statusUrlTemplate, initialExportId) {
+  return {
+    exportId: initialExportId,
+    ready: false,
+    downloadUrl: "",
+    init() {
+      if (this.exportId) this.poll();
+    },
+    async start() {
+      const res = await fetch(requestUrl, {
+        method: "POST",
+        headers: { "X-CSRFToken": document.querySelector('meta[name=csrf-token]').content },
+      });
+      const url = new URL(res.url);
+      this.exportId = url.searchParams.get("export");
+      this.poll();
+    },
+    async poll() {
+      const res = await fetch(statusUrlTemplate.replace("/0/status/", `/${this.exportId}/status/`));
+      const data = await res.json();
+      if (data.ready) {
+        this.ready = true;
+        this.downloadUrl = data.url;
+      } else {
+        setTimeout(() => this.poll(), 3000);
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

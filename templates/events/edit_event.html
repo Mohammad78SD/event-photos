@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}ویرایش {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto px-6 pt-12 pb-10">
+  <p class="micro-label-fa mb-3">ویرایش</p>
+  <h1 class="font-body font-medium text-2xl text-ink mb-8">{{ event.title }}</h1>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-6 p-4 rounded-[10px] border border-border bg-pearl text-ink text-[13px]">
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="space-y-6">
+      <div>
+        <label for="{{ form.title.id_for_label }}" class="field-label">{{ form.title.label }}</label>
+        {{ form.title }}
+        {% for error in form.title.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label for="{{ form.names_latin.id_for_label }}" class="field-label">{{ form.names_latin.label }}</label>
+        {{ form.names_latin }}
+        {% for error in form.names_latin.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label for="{{ form.event_at.id_for_label }}" class="field-label">{{ form.event_at.label }}</label>
+        {{ form.event_at }}
+        {% for error in form.event_at.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label for="{{ form.cover_image.id_for_label }}" class="field-label">{{ form.cover_image.label }}</label>
+        {% if event.cover_image %}
+          <div class="flex items-center gap-3 mb-3">
+            <img src="{{ event.cover_image.url }}" alt="cover" class="h-16 w-16 object-cover rounded-[10px] border border-border">
+            <span class="text-[12px] text-muted-2">عکس فعلی — برای تغییر، عکس جدید انتخاب کنید</span>
+          </div>
+        {% endif %}
+        {{ form.cover_image }}
+        {% for error in form.cover_image.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label for="{{ form.welcome_text.id_for_label }}" class="field-label">{{ form.welcome_text.label }} <span class="text-muted-2 font-normal">(اختیاری)</span></label>
+        {{ form.welcome_text }}
+        {% for error in form.welcome_text.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      {% include "partials/_divider.html" %}
+
+      <div class="space-y-3">
+        {% include "partials/_toggle_field.html" with field=form.is_open %}
+        {% include "partials/_toggle_field.html" with field=form.gallery_shared %}
+        {% include "partials/_toggle_field.html" with field=form.require_approval %}
+      </div>
+
+      {% include "partials/_divider.html" %}
+
+      <div>
+        <label for="{{ form.max_file_mb.id_for_label }}" class="field-label">{{ form.max_file_mb.label }}</label>
+        {{ form.max_file_mb }}
+        {% for error in form.max_file_mb.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label for="{{ form.max_files_batch.id_for_label }}" class="field-label">{{ form.max_files_batch.label }}</label>
+        {{ form.max_files_batch }}
+        {% for error in form.max_files_batch.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+
+      <div>
+        <label for="{{ form.quota_gb.id_for_label }}" class="field-label">{{ form.quota_gb.label }}</label>
+        {{ form.quota_gb }}
+        {% for error in form.quota_gb.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div class="flex gap-2 mt-8">
+      <button type="submit" class="btn-primary flex-1">ذخیره تغییرات</button>
+      <a href="{% url 'dashboard' %}" class="btn-secondary flex-1">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}یه مشکلی پیش اومد{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-6 pt-24 pb-10 text-center">
+  <h1 class="font-body font-medium text-2xl text-ink mb-3">یه مشکلی پیش اومد</h1>
+  <p class="text-[14px] text-muted mb-2">دوباره امتحان کنین.</p>
+  {% if support_phone %}
+  <p class="text-[14px] text-muted">اگه درست نشد، به ما زنگ بزنین: <span dir="ltr">{{ support_phone }}</span></p>
+  {% endif %}
+</div>
+{% endblock %}

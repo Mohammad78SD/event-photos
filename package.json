@@ -1,0 +1,20 @@
+{
+  "name": "event-photos",
+  "private": true,
+  "scripts": {
+    "watch:css": "tailwindcss -i ./static/src/input.css -o ./static/dist/app.css --watch",
+    "build:css": "tailwindcss -i ./static/src/input.css -o ./static/dist/app.css --minify",
+    "build:js": "esbuild static/src/js/upload.js --bundle --format=iife --global-name=WeddingUpload --outfile=static/dist/upload.js --minify",
+    "watch:js": "esbuild static/src/js/upload.js --bundle --format=iife --global-name=WeddingUpload --outfile=static/dist/upload.js --watch",
+    "build": "npm run build:css && npm run build:js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^3.4.15"
+  },
+  "dependencies": {
+    "@uppy/core": "^6.0.1",
+    "@uppy/xhr-upload": "^6.0.0",
+    "browser-image-compression": "^2.0.2"
+  }
+}

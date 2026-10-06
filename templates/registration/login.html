@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-sm mx-auto px-6 pt-16 pb-10">
+  <div class="text-center mb-10">
+    <span class="pearl-dot w-8 h-8 inline-block mb-4"></span>
+    <p class="font-body font-medium text-2xl text-ink">آلبوم عروسی</p>
+  </div>
+
+  <h1 class="font-body font-medium text-xl text-ink mb-6">ورود</h1>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <p class="field-error mb-4">نام کاربری یا رمز عبور نادرست است.</p>
+    {% endif %}
+
+    <label class="block mb-4">
+      <span class="field-label">نام کاربری</span>
+      <input type="text" name="username" class="field-input" autofocus required>
+    </label>
+
+    <label class="block mb-8">
+      <span class="field-label">رمز عبور</span>
+      <input type="password" name="password" class="field-input" required>
+    </label>
+
+    <button type="submit" class="btn-primary">ورود</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load event_extras %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-6 pt-12 pb-10">
+  <p class="micro-label-fa mb-3">فهرست</p>
+  <h1 class="font-body font-medium text-2xl text-ink mb-8">فهرست مهمان‌ها</h1>
+
+  <div class="divide-y divide-hairline">
+    {% for guest in guests %}
+    <div class="py-3 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full pearl-dot flex items-center justify-center font-body font-medium text-ink text-sm shrink-0">{{ guest.name|first }}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-[15px] text-ink-soft truncate">{{ guest.name }}</p>
+        <p class="text-[13px] text-muted-2" dir="ltr">{{ guest.phone }}</p>
+      </div>
+      <div class="text-left shrink-0">
+        <p class="text-[13px] text-muted">{{ guest.photo_count|persian_digits }} عکس</p>
+        {% if not guest.is_approved %}<p class="text-[11px] text-muted-2">در انتظار تأیید</p>{% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-14">
+      <span class="pearl-dot w-6 h-6 inline-block mb-4"></span>
+      <p class="text-[15px] text-muted">هنوز مهمانی ثبت‌نام نکرده.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

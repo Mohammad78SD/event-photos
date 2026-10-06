@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static event_extras %}
+
+{% block og %}
+  <meta property="og:title" content="{{ event.title }}">
+  <meta property="og:description" content="{{ event.welcome_text|default:"بیاین این لحظه‌ها رو با هم ببینیم."|truncatewords:20 }}">
+  {% if event.cover_image %}<meta property="og:image" content="{{ event.cover_image.url }}">{% endif %}
+{% endblock %}
+
+{% block content %}
+{% comment %} The whole landing is exactly one screen — no scrolling to reach the button.
+   100svh, not 100vh: on mobile Safari/Chrome the large viewport unit is taller
+   than what you can actually see until the URL bar retracts, which would push
+   the button off the bottom on arrival — the one thing this page must not do.
+   The photo takes whatever height is left after the text block, so the text
+   never gets clipped on a short phone; the photo just gets shorter. {% endcomment %}
+<div class="h-[100svh] flex flex-col overflow-hidden">
+  {% if event.cover_image %}
+  <div class="relative flex-1 min-h-0 w-full">
+    {% comment %} 40%, not 100%: the cover is a tall portrait whose subject — the hands and
+       the ring — sits around 60% down, with nothing but jacket below it. {% endcomment %}
+    <img src="{{ event.cover_image.url }}" alt="" class="h-full w-full object-cover" style="object-position: 50% 40%">
+    <div class="absolute inset-x-0 bottom-0 h-[110px] bg-gradient-to-b from-transparent to-pearl"></div>
+  </div>
+  {% endif %}
+
+  <div class="shrink-0 px-6 pb-8 text-center relative {% if not event.cover_image %}pt-16{% endif %}">
+    <span class="pearl-dot w-2 h-2 absolute top-2 right-10"></span>
+    <span class="pearl-dot w-[6px] h-[6px] absolute top-14 left-8"></span>
+
+    <p class="micro-label-fa mb-2">عقد و نامزدی</p>
+
+    <div class="font-display text-[38px] leading-tight text-ink">
+      <span>{{ event.names.0 }}</span>
+      <div class="font-script text-[24px] text-muted-2">And</div>
+      <span>{{ event.names.1 }}</span>
+    </div>
+
+    <p class="font-display text-lg text-muted mt-3">{{ event.event_at|jalali }}</p>
+
+    {% include "partials/_divider.html" %}
+
+    <p class="text-[15px] text-ink-soft leading-7 font-light">{{ headline }}</p>
+    {% if event.welcome_text %}
+    <p class="text-[15px] text-ink-soft leading-7 font-light mt-2">{{ event.welcome_text }}</p>
+    {% endif %}
+
+    <a href="{% url 'uploads:hello' slug=event.slug %}" class="btn-primary mt-6 relative">شروع کنین</a>
+  </div>
+</div>
+{% endblock %}
